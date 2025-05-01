@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>focus_control</name>
+  <version>0.0.1</version>
+  <description>Focus control script for automated lens focusing.</description>
+  <maintainer email="freddy.smith@vivacitylabs.com">Freddy Smith</maintainer>
+  <license>Apache License 2.0</license>
+
+  <depend>rclpy</depend>
+  <depend>std_msgs</depend>
+  <depend>std_srvs</depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>
