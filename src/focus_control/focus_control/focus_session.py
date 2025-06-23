@@ -25,7 +25,7 @@ def save_json(path, data):
         json.dump(data, f, indent=2)
         
 class FocusSession:
-    def __init__(self, node, score_publisher, plotter, camera_id, lens_spec, focus_distance, annotation_publisher=None, focus_done_publisher=None):
+    def __init__(self, node, score_publisher, plotter, camera_id, lens_spec, focus_distance, annotation_publisher=None, focus_done_publisher=None, focus_start_publisher=None):
         self.node = node
         self.cap = None
         self.latest_frame = None
@@ -51,6 +51,7 @@ class FocusSession:
         self.current_phase = "idle"
         self.annotation_publisher = annotation_publisher
         self.focus_done_publisher = focus_done_publisher
+        self.focus_start_publisher = focus_start_publisher
 
         self.plot_lock = threading.Lock()
 
@@ -290,17 +291,53 @@ class FocusSession:
         
 
     def setup_camera(self):
-        pipeline = (
+        """Setup camera for focus operations - called lazily when needed"""
+        if self.cap and self.cap.isOpened():
+            return True  # Camera already initialized
+            
+        # Try simple pipeline first (like visual_test_overlay.py uses)
+        simple_pipeline = (
+            f"nvarguscamerasrc sensor-position={self.camera_id} ! "
+            f"nvvidconv ! video/x-raw, format=BGRx ! videoconvert ! "
+            f"video/x-raw, format=BGR ! appsink drop=true"
+        )
+        
+        # Try complex pipeline as fallback
+        complex_pipeline = (
             f"nvarguscamerasrc sensor-position={self.camera_id} ! "
             "video/x-raw(memory:NVMM), width=1280, height=720, format=NV12, framerate=30/1 ! "
             "nvvidconv ! video/x-raw, format=BGRx ! videoconvert ! "
             "video/x-raw, format=BGR ! appsink"
         )
-        self.cap = cv2.VideoCapture(pipeline, cv2.CAP_GSTREAMER)
+        
+        # Try simple pipeline first
+        self.node.get_logger().info(f"📷 Trying simple pipeline: {simple_pipeline}")
+        self.cap = cv2.VideoCapture(simple_pipeline, cv2.CAP_GSTREAMER)
+        
         if not self.cap.isOpened():
-            self.node.get_logger().error("❌ Could not open camera.")
+            self.node.get_logger().warning("⚠️ Simple pipeline failed, trying complex pipeline")
+            self.cap = cv2.VideoCapture(complex_pipeline, cv2.CAP_GSTREAMER)
+            
+        if not self.cap.isOpened():
+            self.node.get_logger().error("❌ Could not open camera with either pipeline.")
+            self.node.get_logger().error(f"📋 OpenCV build info: {cv2.getBuildInformation()}")
             return False
+        
+        # Start background threads for camera operations
+        if not hasattr(self, '_camera_threads_started'):
+            threading.Thread(target=self.background_frame_grabber, daemon=True).start()
+            threading.Thread(target=self.render_live_feed, daemon=True).start()
+            self._camera_threads_started = True
+            
+        self.node.get_logger().info("📷 Camera initialized for focus operations")
         return True
+        
+    def release_camera(self):
+        """Release camera resources when focus operations complete"""
+        if self.cap and self.cap.isOpened():
+            self.cap.release()
+            self.cap = None
+            self.node.get_logger().info("📷 Camera resources released")
 
     def background_frame_grabber(self):
         while not self.shutdown_event.is_set() and self.cap and self.cap.isOpened():
@@ -427,6 +464,11 @@ class FocusSession:
 
 
     def run_focus_loop(self):
+        # Initialize camera for focus operations
+        if not self.setup_camera():
+            self.node.get_logger().error("❌ Failed to initialize camera for focus operations")
+            return
+            
         from focus_control.tools.focus_shape_matcher import (
             match_focus_entry_zone,
             match_to_peak_profile,
@@ -486,6 +528,13 @@ class FocusSession:
                 writer = csv.writer(logfile)
                 writer.writerow(['Position', 'Focus Score'])
 
+                # Publish focus start event
+                if self.focus_start_publisher:
+                    start_msg = String()
+                    start_msg.data = "start"
+                    self.focus_start_publisher.publish(start_msg)
+                    self.node.get_logger().info("📢 Published focus_start message")
+                
                 self.current_phase = "discovery"
                 self.send_annotation("phase", position, self.current_phase)
                 self.node.get_logger().info(f"🌀 Phase: {self.current_phase} | Step size: {current_step} | Start position: {position}")
@@ -579,6 +628,11 @@ class FocusSession:
 
 
     def run_calibration(self):
+        # Initialize camera for calibration operations
+        if not self.setup_camera():
+            self.node.get_logger().error("❌ Failed to initialize camera for calibration operations")
+            return
+            
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         label = f"calib_{self.lens_spec}_{self.focus_distance}m_cam{self.camera_id}_{timestamp}"
 

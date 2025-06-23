@@ -56,6 +56,7 @@ def main():
     score_pub = node.create_publisher(String, "focus_score", 10)
     annotation_pub = node.create_publisher(String, "focus_annotation", 10)
     focus_done_pub = node.create_publisher(String, "focus_complete", 10)
+    focus_start_pub = node.create_publisher(String, "focus_start", 10)
 
     plotter = FocusPlotter()
 
@@ -67,17 +68,12 @@ def main():
         camera_id=camera_id,
         lens_spec=lens_spec,
         focus_distance=focus_distance,
-        focus_done_publisher=focus_done_pub
+        focus_done_publisher=focus_done_pub,
+        focus_start_publisher=focus_start_pub
     )
 
-    if not session.setup_camera():
-        node.get_logger().error("❌ Camera setup failed.")
-        node.destroy_node()
-        rclpy.shutdown()
-        return
-
-    threading.Thread(target=session.background_frame_grabber, daemon=True).start()
-    threading.Thread(target=session.render_live_feed, daemon=True).start()
+    # Camera will be initialized lazily when focus operations begin
+    node.get_logger().info("🚀 Focus service ready - camera will be initialized when needed")
 
     # ✅ Default pre-move servo position (optional)
     session.set_servo_position(session.servo_support_home)
