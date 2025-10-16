@@ -1,0 +1,43 @@
+{
+  "hold_lens": {
+    "Z": 63.0,
+    "A": 63.0,
+    "description": "ZA position for holding the lens during focus"
+  },
+  "camera_positions": {
+    "Camera0": {
+      "B": -4.5,
+      "description": "Position 1 (top)"
+    },
+    "Camera1": {
+      "B": -48.2,
+      "description": "Position 2"
+    },
+    "Camera2": {
+      "B": -92.9,
+      "description": "Position 3"
+    },
+    "Camera3": {
+      "B": -136.0,
+      "description": "Position 4"
+    },
+    "Camera4": {
+      "B": -179.9,
+      "description": "Position 5"
+    },
+    "Camera5": {
+      "B": -223.6,
+      "description": "Position 6 (bottom)"
+    }
+  },
+  "servo_positions": {
+    "home": 120,
+    "active": 33,
+    "description": "Servo angles for lens holder"
+  },
+  "post_focus": {
+    "lift_distance": 7.0,
+    "dot_laser_duration": 8.0,
+    "description": "Post-focus sequence parameters"
+  }
+}

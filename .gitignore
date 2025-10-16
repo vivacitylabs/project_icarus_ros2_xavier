@@ -1,24 +1,58 @@
+# ROS2 build artifacts
 build/
 install/
 log/
+
+# Python
 *.pyc
+*.pyo
+*.pyd
 __pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+.pytest_cache/
+dist/
 
 # IDE files
 .idea/
 .vscode/
 *.swp
 *.swo
+*~
+.project
+.pydevproject
+.settings/
 
 # OS files
 .DS_Store
 Thumbs.db
+*.bak
 
 # Temporary files
 /tmp/
 *.tmp
 *.log
+monitor.log
 
-# Python
-*.egg-info/
-.pytest_cache/
+# Backup files
+*.backup
+*_backup.py
+
+# Local configuration
+.env
+.env.local
+*.local
+
+# Test and debug output
+*.raw
+*.jpg
+test_*.py
+debug_*.py
+
+# Camera samples and external libraries
+gpu-camera-sample/
+
+# Documentation (local only)
+CLAUDE.local.md

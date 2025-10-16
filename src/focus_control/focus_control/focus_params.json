@@ -1,0 +1,12 @@
+{
+  "servo_positions": {
+    "home": 120,
+    "active": 32,
+    "description": "Servo angles for lens holder"
+  },
+  "post_focus": {
+    "lift_distance": 5.0,
+    "dot_laser_duration": 8.0,
+    "description": "Post-focus sequence parameters"
+  }
+}

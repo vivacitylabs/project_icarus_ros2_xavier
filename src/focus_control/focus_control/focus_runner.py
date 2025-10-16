@@ -95,10 +95,14 @@ def main():
         graph_dir = f"/home/ubuntu/focus_logs/{log_subdir}/graphs"
         os.makedirs(graph_dir, exist_ok=True)
 
-        plot_path = os.path.join(
-            graph_dir,
-            f"{label}_graph_{lens_spec}_{focus_distance}mm_cam{camera_id}_{timestamp}.png"
-        )
+        # Get serial number from session if available
+        serial_number = getattr(session, 'current_serial_number', '')
+        if serial_number:
+            graph_filename = f"{label}_graph_{serial_number}_{lens_spec}_{focus_distance}mm_cam{camera_id}_{timestamp}.png"
+        else:
+            graph_filename = f"{label}_graph_{lens_spec}_{focus_distance}mm_cam{camera_id}_{timestamp}.png"
+            
+        plot_path = os.path.join(graph_dir, graph_filename)
         plotter.save_graph(plot_path)
         node.get_logger().info(f"📊 Graph saved to: {plot_path}")
 
